@@ -1,0 +1,13 @@
+{
+  "name": "webgl-graph-viewer",
+  "version": "1.0.0",
+  "description": "A WebGL Graph Viewer",
+  "main": "server.js",
+  "repository": "https://github.com/daniel-goldstein/webgl-graph-viewer.git",
+  "author": "Jason Crouse <jcrouse@drift.com>",
+  "license": "MIT",
+  "private": false,
+  "dependencies": {
+    "express": "^4.17.1"
+  }
+}
