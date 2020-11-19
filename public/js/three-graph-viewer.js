@@ -1,5 +1,7 @@
-/* global THREE */
 /* eslint no-use-before-define: 0 */
+
+import * as THREE from './build/three.module.js';
+import { OrbitControls } from './examples/jsm/controls/OrbitControls.js';
 
 const SPHERE_RADIUS = 5;
 const CYLINDER_RADIUS = 1;
@@ -33,7 +35,7 @@ const exampleGraph = {
   },
 };
 
-function init() { /* eslint no-unused-vars: 0 */
+function init() {
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
@@ -44,8 +46,11 @@ function init() { /* eslint no-unused-vars: 0 */
   addGraph(scene, exampleGraph);
   camera.position.z = 50;
 
+  const controls = new OrbitControls(camera, renderer.domElement);
+
   const animate = () => {
     requestAnimationFrame(animate);
+    controls.update();
     renderer.render(scene, camera);
   };
   animate();
@@ -86,3 +91,5 @@ function addOutEdges(scene, graph, posn, neighbors) {
     scene.add(cylinder);
   });
 }
+
+init();
