@@ -1,8 +1,10 @@
-/* eslint no-undef: 0 */
+/* global THREE */
 /* eslint no-use-before-define: 0 */
 
 const SPHERE_RADIUS = 5;
 const CYLINDER_RADIUS = 1;
+
+const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 const exampleGraph = {
   A: {
