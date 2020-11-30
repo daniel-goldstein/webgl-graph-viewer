@@ -238,6 +238,7 @@ function addNodeToScene(scene, nodeID, node) {
 
   const material = new THREE.MeshPhongMaterial();
   assignNodeTexture(material, node.texture);
+
   const sphere = new THREE.Mesh(geometry, material);
   sphere.on("mousedown", () => updateNodeTexture(node, sphere.material));
 
@@ -276,29 +277,30 @@ function addOutEdgesToScene(scene, graph, node) {
       neighborPosn.y,
       neighborPosn.z
     );
-    const direction = new THREE.Vector3().subVectors(neighborVec, nodeVec);
 
     const geometry = new THREE.CylinderGeometry(
       CYLINDER_RADIUS,
       CYLINDER_RADIUS,
-      direction.length(),
+      1,
       64
     );
     const material = new THREE.MeshPhongMaterial();
     material.color = new THREE.Color(EDGE_COLOR);
-
     const cylinder = new THREE.Mesh(geometry, material);
 
-    cylinder.quaternion.setFromUnitVectors(
-      Y_AXIS,
-      direction.clone().normalize()
-    );
-    cylinder.position.copy(
-      new THREE.Vector3().addVectors(nodeVec, direction.multiplyScalar(0.5))
-    );
+    const direction = new THREE.Vector3().subVectors(neighborVec, nodeVec);
+    alignEdgeWithNodes(cylinder, nodeVec, direction);
 
     scene.add(cylinder);
   });
+}
+
+function alignEdgeWithNodes(cylinder, nodeVec, direction) {
+  cylinder.quaternion.setFromUnitVectors(Y_AXIS, direction.clone().normalize());
+  cylinder.position.copy(
+    new THREE.Vector3().addVectors(nodeVec, direction.multiplyScalar(0.5))
+  );
+  cylinder.geometry.scale(1, 2 * direction.length(), 1);
 }
 
 function initGroundMesh() {
