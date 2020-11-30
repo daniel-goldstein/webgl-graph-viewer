@@ -1,10 +1,10 @@
 /* eslint no-use-before-define: 0 */
 
-import * as THREE from './build/three.module.js';
-import { Interaction } from './build/three-interaction.module.js';
-import { OrbitControls } from './examples/jsm/controls/OrbitControls.js';
-import sample from '../node_modules/underscore/modules/sample.js';
-import terrainData from '../terrain.js';
+import * as THREE from "./build/three.module.js";
+import { Interaction } from "./build/three-interaction.module.js";
+import { OrbitControls } from "./examples/jsm/controls/OrbitControls.js";
+import sample from "../node_modules/underscore/modules/sample.js";
+import terrainData from "../terrain.js";
 
 const SPHERE_RADIUS = 1;
 const CYLINDER_RADIUS = 0.2;
@@ -17,9 +17,9 @@ const GRAPH_BOUNDARIES = {
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
-const BACKGROUND_FILEPATH = 'space.jpeg';
-const STAINLESS_STEEL_FILEPATH = 'stainless-steel.jpg';
-const LAVA_FILEPATH = 'lava.jpg';
+const BACKGROUND_FILEPATH = "space-low.jpg";
+const STAINLESS_STEEL_FILEPATH = "stainless-steel.jpg";
+const LAVA_FILEPATH = "lava.jpg";
 
 const BLUE = 0x1987f8;
 const RED = 0xe9533b;
@@ -36,7 +36,7 @@ const NODE_TEXTURES = [
 
 const exampleGraph = {
   A: {
-    neighbors: ['B', 'C', 'D', 'E'],
+    neighbors: ["B", "C", "D", "E"],
     posn: {
       x: 10,
       y: 10,
@@ -45,7 +45,7 @@ const exampleGraph = {
     texture: NODE_TEXTURES[0],
   },
   B: {
-    neighbors: ['C', 'E'],
+    neighbors: ["C", "E"],
     posn: {
       x: -10,
       y: 10,
@@ -168,7 +168,7 @@ function init() {
     75,
     window.innerWidth / window.innerHeight,
     0.1,
-    1000,
+    1000
   );
 
   const renderer = new THREE.WebGLRenderer();
@@ -205,7 +205,6 @@ function init() {
 
 function initScene() {
   const scene = new THREE.Scene();
-
   const texture = new THREE.TextureLoader().load(BACKGROUND_FILEPATH);
   scene.background = texture;
   return scene;
@@ -251,7 +250,7 @@ function addNodeToScene(scene, nodeID, node) {
   }
 
   const sphere = new THREE.Mesh(geometry, material);
-  sphere.on('mousedown', () => updateNodeTexture(node));
+  sphere.on("mousedown", () => updateNodeTexture(node));
 
   scene.add(sphere);
 }
@@ -274,7 +273,7 @@ function addOutEdgesToScene(scene, graph, node) {
     const neighborVec = new THREE.Vector3(
       neighborPosn.x,
       neighborPosn.y,
-      neighborPosn.z,
+      neighborPosn.z
     );
     const direction = new THREE.Vector3().subVectors(neighborVec, nodeVec);
 
@@ -282,7 +281,7 @@ function addOutEdgesToScene(scene, graph, node) {
       CYLINDER_RADIUS,
       CYLINDER_RADIUS,
       direction.length(),
-      64,
+      64
     );
     const material = new THREE.MeshPhongMaterial();
     material.color = new THREE.Color(EDGE_COLOR);
@@ -291,10 +290,10 @@ function addOutEdgesToScene(scene, graph, node) {
 
     cylinder.quaternion.setFromUnitVectors(
       Y_AXIS,
-      direction.clone().normalize(),
+      direction.clone().normalize()
     );
     cylinder.position.copy(
-      new THREE.Vector3().addVectors(nodeVec, direction.multiplyScalar(0.5)),
+      new THREE.Vector3().addVectors(nodeVec, direction.multiplyScalar(0.5))
     );
 
     scene.add(cylinder);
@@ -304,14 +303,14 @@ function addOutEdgesToScene(scene, graph, node) {
 function initGroundMesh() {
   const geometry = new THREE.PlaneGeometry(60, 60, 199, 199);
   for (let i = 0; i < geometry.vertices.length; i++) {
-    geometry.vertices[i].z = terrainData[i] / 65535 * 25;
+    geometry.vertices[i].z = (terrainData[i] / 65535) * 25;
   }
   geometry.rotateX(-Math.PI / 2);
   geometry.translate(0, -30, 0);
 
   const material = new THREE.MeshPhongMaterial({
     color: 0x875b3b,
-    // wireframe: true,
+    wireframe: true,
   });
 
   return new THREE.Mesh(geometry, material);
