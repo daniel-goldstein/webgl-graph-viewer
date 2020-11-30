@@ -34,6 +34,9 @@ const NODE_TEXTURES = [
   new THREE.TextureLoader().load(LAVA_FILEPATH),
 ];
 
+const NUM_NODES = 15;
+const NUM_ANIMATION_FRAMES = 50;
+
 const exampleGraph = {
   A: {
     neighbors: ["B", "C", "D", "E"],
@@ -107,7 +110,7 @@ function randomPosition() {
 }
 
 function randomNeighbors(nodeIDs) {
-  const numNeighbors = Math.floor(Math.random() * nodeIDs.length);
+  const numNeighbors = Math.floor(Math.random() * (nodeIDs.length / 3));
   if (numNeighbors === 1) {
     return [sample(nodeIDs)];
   }
@@ -133,9 +136,8 @@ function randomNodePositions(graph) {
 function* randomizeGraphAnimation(graph) {
   const nodeStartingPositions = getNodePositions(graph);
   const nodeDestinations = randomNodePositions(graph);
-  const numFrames = 20;
 
-  for (let i = 0; i < numFrames; i++) {
+  for (let i = 0; i < NUM_ANIMATION_FRAMES; i++) {
     Object.entries(graph).forEach(([nodeID, node]) => {
       const startPosn = nodeStartingPositions[nodeID];
       const endPosn = nodeDestinations[nodeID];
@@ -143,16 +145,16 @@ function* randomizeGraphAnimation(graph) {
       const endVec = new THREE.Vector3(endPosn.x, endPosn.y, endPosn.z);
       const direction = new THREE.Vector3().subVectors(endVec, startVec);
 
-      node.posn.x += direction.x / numFrames;
-      node.posn.y += direction.y / numFrames;
-      node.posn.z += direction.z / numFrames;
+      node.posn.x += direction.x / NUM_ANIMATION_FRAMES;
+      node.posn.y += direction.y / NUM_ANIMATION_FRAMES;
+      node.posn.z += direction.z / NUM_ANIMATION_FRAMES;
     });
 
     yield graph;
   }
 }
 
-const randomGraph = generateRandomGraph(10);
+const randomGraph = generateRandomGraph(NUM_NODES);
 const world = {
   graph: randomGraph,
 };
