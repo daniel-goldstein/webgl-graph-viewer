@@ -159,8 +159,6 @@ const world = {
   graph: randomGraph,
 };
 
-let somethingHasChanged = true;
-
 let animationGenerator = randomizeGraphAnimation(world.graph);
 
 function init() {
@@ -189,13 +187,9 @@ function init() {
     const { value, done } = animationGenerator.next();
     if (!done) {
       world.graph = value;
-      somethingHasChanged = true;
-    }
-    if (somethingHasChanged) {
       addGraphToScene(scene, world.graph);
       scene.add(spotlight);
       scene.add(ground);
-      somethingHasChanged = false;
     }
 
     requestAnimationFrame(animate);
@@ -243,6 +237,21 @@ function addNodeToScene(scene, nodeID, node) {
   geometry.translate(posn.x, posn.y, posn.z);
 
   const material = new THREE.MeshPhongMaterial();
+  assignNodeTexture(material, node.texture);
+  const sphere = new THREE.Mesh(geometry, material);
+  sphere.on("mousedown", () => updateNodeTexture(node, sphere.material));
+
+  scene.add(sphere);
+}
+
+function updateNodeTexture(node, material) {
+  const texture = nextNodeTexture(node.texture);
+  node.texture = texture;
+  assignNodeTexture(material, texture);
+  material.needsUpdate = true;
+}
+
+function assignNodeTexture(material, texture) {
   if (texture instanceof THREE.Color) {
     material.map = undefined;
     material.color = texture;
@@ -250,16 +259,6 @@ function addNodeToScene(scene, nodeID, node) {
     material.color = undefined;
     material.map = texture;
   }
-
-  const sphere = new THREE.Mesh(geometry, material);
-  sphere.on("mousedown", () => updateNodeTexture(node));
-
-  scene.add(sphere);
-}
-
-function updateNodeTexture(node) {
-  node.texture = nextNodeTexture(node.texture);
-  somethingHasChanged = true;
 }
 
 function nextNodeTexture(nodeTexture) {
