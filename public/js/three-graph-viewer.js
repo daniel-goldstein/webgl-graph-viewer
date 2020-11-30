@@ -202,11 +202,15 @@ function init() {
   const ground = initGroundMesh();
   scene.add(spotlight);
   scene.add(ground);
+
+  initGraphThreeObjects(world.graph);
   addGraphToScene(scene, world.graph);
   animationGenerator = randomizeGraphAnimation(world.graph);
 
   const animate = () => {
+    // Move the animation forward if there is one ongoing
     animationGenerator.next();
+
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
@@ -236,26 +240,47 @@ function initSpotlight() {
   return spotLight;
 }
 
+function initGroundMesh() {
+  const geometry = new THREE.PlaneGeometry(60, 60, 199, 199);
+  for (let i = 0; i < geometry.vertices.length; i++) {
+    geometry.vertices[i].z = (terrainData[i] / 65535) * 25;
+  }
+  geometry.rotateX(-Math.PI / 2);
+  geometry.translate(0, -30, 0);
+
+  const material = new THREE.MeshPhongMaterial({
+    color: 0x875b3b,
+    wireframe: true,
+  });
+
+  return new THREE.Mesh(geometry, material);
+}
+
 function addGraphToScene(scene, graph) {
-  Object.entries(graph).forEach(([nodeID, node]) => {
-    addNodeToScene(scene, nodeID, node);
-    addOutEdgesToScene(scene, graph, node);
+  Object.values(graph).forEach((node) => {
+    scene.add(node.mesh);
+    Object.values(node.edgeMeshes).forEach((edge) => scene.add(edge));
   });
 }
 
-function addNodeToScene(scene, nodeID, node) {
+function initGraphThreeObjects(graph) {
+  Object.values(graph).forEach((node) => {
+    initNodeMesh(node);
+    initOutEdgeMeshes(graph, node);
+  });
+}
+
+function initNodeMesh(node) {
   const { posn, texture } = node;
   const geometry = new THREE.SphereGeometry(SPHERE_RADIUS, 32, 32);
   geometry.translate(posn.x, posn.y, posn.z);
 
   const material = new THREE.MeshPhongMaterial();
-  assignNodeTexture(material, node.texture);
+  assignNodeTexture(material, texture);
 
   const sphere = new THREE.Mesh(geometry, material);
   sphere.on("mouseup", () => updateNodeTexture(node, sphere.material));
-
   node.mesh = sphere;
-  scene.add(sphere);
 }
 
 function updateNodeTexture(node, material) {
@@ -263,6 +288,11 @@ function updateNodeTexture(node, material) {
   node.texture = texture;
   assignNodeTexture(material, texture);
   material.needsUpdate = true;
+}
+
+function nextNodeTexture(nodeTexture) {
+  const nodeTextureIndex = NODE_TEXTURES.indexOf(nodeTexture);
+  return NODE_TEXTURES[(nodeTextureIndex + 1) % NODE_TEXTURES.length];
 }
 
 function assignNodeTexture(material, texture) {
@@ -275,16 +305,9 @@ function assignNodeTexture(material, texture) {
   }
 }
 
-function nextNodeTexture(nodeTexture) {
-  const nodeTextureIndex = NODE_TEXTURES.indexOf(nodeTexture);
-  return NODE_TEXTURES[(nodeTextureIndex + 1) % NODE_TEXTURES.length];
-}
-
-function addOutEdgesToScene(scene, graph, node) {
+function initOutEdgeMeshes(graph, node) {
   const { posn, neighbors } = node;
-  neighbors.forEach((name) => {
-    const neighborPosn = graph[name].posn;
-
+  neighbors.forEach((neighborName) => {
     const geometry = new THREE.CylinderGeometry(
       CYLINDER_RADIUS,
       CYLINDER_RADIUS,
@@ -294,11 +317,9 @@ function addOutEdgesToScene(scene, graph, node) {
     const material = new THREE.MeshPhongMaterial();
     material.color = new THREE.Color(EDGE_COLOR);
     const cylinder = new THREE.Mesh(geometry, material);
+    alignEdgeWithNodes(cylinder, posn, graph[neighborName].posn);
 
-    alignEdgeWithNodes(cylinder, posn, neighborPosn);
-    node.edgeMeshes[name] = cylinder;
-
-    scene.add(cylinder);
+    node.edgeMeshes[neighborName] = cylinder;
   });
 }
 
@@ -315,22 +336,6 @@ function alignEdgeWithNodes(cylinder, posn, neighborPosn) {
     new THREE.Vector3().addVectors(nodeVec, direction.multiplyScalar(0.5))
   );
   cylinder.scale.set(1, 2 * direction.length(), 1);
-}
-
-function initGroundMesh() {
-  const geometry = new THREE.PlaneGeometry(60, 60, 199, 199);
-  for (let i = 0; i < geometry.vertices.length; i++) {
-    geometry.vertices[i].z = (terrainData[i] / 65535) * 25;
-  }
-  geometry.rotateX(-Math.PI / 2);
-  geometry.translate(0, -30, 0);
-
-  const material = new THREE.MeshPhongMaterial({
-    color: 0x875b3b,
-    wireframe: true,
-  });
-
-  return new THREE.Mesh(geometry, material);
 }
 
 init();
