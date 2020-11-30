@@ -96,6 +96,8 @@ function generateRandomGraph(numNodes) {
       posn: randomPosition(),
       neighbors: randomNeighbors(nodeIDs),
       texture: NODE_TEXTURES[0],
+      mesh: undefined,
+      edgeMeshes: {},
     };
     return graph;
   }, {});
@@ -145,21 +147,37 @@ function* randomizeGraphAnimation(graph) {
       const endVec = new THREE.Vector3(endPosn.x, endPosn.y, endPosn.z);
       const direction = new THREE.Vector3().subVectors(endVec, startVec);
 
-      node.posn.x += direction.x / NUM_ANIMATION_FRAMES;
-      node.posn.y += direction.y / NUM_ANIMATION_FRAMES;
-      node.posn.z += direction.z / NUM_ANIMATION_FRAMES;
+      const xOffset = direction.x / NUM_ANIMATION_FRAMES;
+      const yOffset = direction.y / NUM_ANIMATION_FRAMES;
+      const zOffset = direction.z / NUM_ANIMATION_FRAMES;
+
+      node.posn.x += xOffset;
+      node.posn.y += yOffset;
+      node.posn.z += zOffset;
+
+      node.mesh.geometry.translate(xOffset, yOffset, zOffset);
+      node.mesh.geometry.verticesNeedUpdate = true; // re-render this node on the next animate loop
+    });
+
+    Object.values(graph).forEach((node) => {
+      Object.entries(node.edgeMeshes).forEach(([neighborName, cylinder]) => {
+        alignEdgeWithNodes(cylinder, node.posn, graph[neighborName].posn);
+        cylinder.geometry.verticesNeedUpdate = true;
+      });
     });
 
     yield graph;
   }
 }
 
-const randomGraph = generateRandomGraph(NUM_NODES);
 const world = {
-  graph: randomGraph,
+  graph: generateRandomGraph(NUM_NODES),
 };
 
-let animationGenerator = randomizeGraphAnimation(world.graph);
+let animationGenerator;
+document.addEventListener("keyup", () => {
+  animationGenerator = randomizeGraphAnimation(world.graph);
+});
 
 function init() {
   const scene = initScene();
@@ -182,16 +200,13 @@ function init() {
 
   const spotlight = initSpotlight();
   const ground = initGroundMesh();
+  scene.add(spotlight);
+  scene.add(ground);
+  addGraphToScene(scene, world.graph);
+  animationGenerator = randomizeGraphAnimation(world.graph);
 
   const animate = () => {
-    const { value, done } = animationGenerator.next();
-    if (!done) {
-      world.graph = value;
-      addGraphToScene(scene, world.graph);
-      scene.add(spotlight);
-      scene.add(ground);
-    }
-
+    animationGenerator.next();
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
@@ -222,9 +237,6 @@ function initSpotlight() {
 }
 
 function addGraphToScene(scene, graph) {
-  while (scene.children.length) {
-    scene.remove(scene.children[0]);
-  }
   Object.entries(graph).forEach(([nodeID, node]) => {
     addNodeToScene(scene, nodeID, node);
     addOutEdgesToScene(scene, graph, node);
@@ -240,8 +252,9 @@ function addNodeToScene(scene, nodeID, node) {
   assignNodeTexture(material, node.texture);
 
   const sphere = new THREE.Mesh(geometry, material);
-  sphere.on("mousedown", () => updateNodeTexture(node, sphere.material));
+  sphere.on("mouseup", () => updateNodeTexture(node, sphere.material));
 
+  node.mesh = sphere;
   scene.add(sphere);
 }
 
@@ -269,14 +282,8 @@ function nextNodeTexture(nodeTexture) {
 
 function addOutEdgesToScene(scene, graph, node) {
   const { posn, neighbors } = node;
-  const nodeVec = new THREE.Vector3(posn.x, posn.y, posn.z);
   neighbors.forEach((name) => {
     const neighborPosn = graph[name].posn;
-    const neighborVec = new THREE.Vector3(
-      neighborPosn.x,
-      neighborPosn.y,
-      neighborPosn.z
-    );
 
     const geometry = new THREE.CylinderGeometry(
       CYLINDER_RADIUS,
@@ -288,19 +295,26 @@ function addOutEdgesToScene(scene, graph, node) {
     material.color = new THREE.Color(EDGE_COLOR);
     const cylinder = new THREE.Mesh(geometry, material);
 
-    const direction = new THREE.Vector3().subVectors(neighborVec, nodeVec);
-    alignEdgeWithNodes(cylinder, nodeVec, direction);
+    alignEdgeWithNodes(cylinder, posn, neighborPosn);
+    node.edgeMeshes[name] = cylinder;
 
     scene.add(cylinder);
   });
 }
 
-function alignEdgeWithNodes(cylinder, nodeVec, direction) {
+function alignEdgeWithNodes(cylinder, posn, neighborPosn) {
+  const nodeVec = new THREE.Vector3(posn.x, posn.y, posn.z);
+  const neighborVec = new THREE.Vector3(
+    neighborPosn.x,
+    neighborPosn.y,
+    neighborPosn.z
+  );
+  const direction = new THREE.Vector3().subVectors(neighborVec, nodeVec);
   cylinder.quaternion.setFromUnitVectors(Y_AXIS, direction.clone().normalize());
   cylinder.position.copy(
     new THREE.Vector3().addVectors(nodeVec, direction.multiplyScalar(0.5))
   );
-  cylinder.geometry.scale(1, 2 * direction.length(), 1);
+  cylinder.scale.set(1, 2 * direction.length(), 1);
 }
 
 function initGroundMesh() {
