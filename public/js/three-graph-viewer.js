@@ -6,14 +6,15 @@ import { OrbitControls } from "./examples/jsm/controls/OrbitControls.js";
 import sample from "../node_modules/underscore/modules/sample.js";
 import terrainData from "../terrain.js";
 
-const SPHERE_RADIUS = 1;
-const CYLINDER_RADIUS = 0.2;
-
+const NUM_NODES = 15;
 const GRAPH_BOUNDARIES = {
   x: 50,
   y: 40,
   z: 50,
 };
+
+const SPHERE_RADIUS = 1;
+const CYLINDER_RADIUS = 0.2;
 
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
@@ -34,7 +35,6 @@ const NODE_TEXTURES = [
   new THREE.TextureLoader().load(LAVA_FILEPATH),
 ];
 
-const NUM_NODES = 15;
 const NUM_ANIMATION_FRAMES = 50;
 
 const MOVEMENT_KEYS = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
@@ -85,6 +85,24 @@ const exampleGraph = {
     texture: NODE_TEXTURES[0],
   },
 };
+
+function generateOriginOverlappingGraph(numNodes) {
+  const nodeIDs = new Array(numNodes);
+  for (let i = 0; i < numNodes; i++) {
+    nodeIDs[i] = i;
+  }
+
+  return nodeIDs.reduce((graph, nodeID) => {
+    graph[nodeID] = {
+      posn: { x: 0, y: 0, z: 0 },
+      neighbors: randomNeighbors(nodeIDs),
+      texture: NODE_TEXTURES[0],
+      mesh: undefined,
+      edgeMeshes: {},
+    };
+    return graph;
+  }, {});
+}
 
 function generateRandomGraph(numNodes) {
   const nodeIDs = new Array(numNodes);
@@ -172,7 +190,7 @@ function* randomizeGraphAnimation(graph) {
 }
 
 const world = {
-  graph: generateRandomGraph(NUM_NODES),
+  graph: generateOriginOverlappingGraph(NUM_NODES),
 };
 
 let animationGenerator;
