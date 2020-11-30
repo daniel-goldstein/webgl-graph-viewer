@@ -2,6 +2,7 @@
 
 import * as THREE from "./build/three.module.js";
 import { OrbitControls } from "./examples/jsm/controls/OrbitControls.js";
+import addKeyHandlers from "./KeyHandlers.js";
 
 const SPHERE_RADIUS = 5;
 const CYLINDER_RADIUS = 1;
@@ -59,10 +60,10 @@ function init() {
   camera.position.z = 50;
 
   const controls = new OrbitControls(camera, renderer.domElement);
-
+  addKeyHandlers(document);
   const animate = () => {
     requestAnimationFrame(animate);
-    controls.update();
+    // controls.update();
     renderer.render(scene, camera);
   };
   animate();
@@ -85,7 +86,6 @@ function initScene() {
   scene.add(spotLight);
 
   const texture = new THREE.TextureLoader().load(BACKGROUND_FILEPATH);
-  // scene.background = new THREE.Color(SCENE_COLOR);
   scene.background = texture;
   return scene;
 }
