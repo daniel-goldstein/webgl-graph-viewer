@@ -10,8 +10,10 @@
   "type": "module",
   "dependencies": {
     "express": "^4.17.1",
+    "lodash": "^4.17.20",
     "three": "^0.122.0",
-    "three.interaction": "^0.2.3"
+    "three.interaction": "^0.2.3",
+    "underscore": "^1.12.0"
   },
   "devDependencies": {
     "eslint": "^7.10.0",
