@@ -37,6 +37,7 @@ const NODE_TEXTURES = [
 const NUM_NODES = 15;
 const NUM_ANIMATION_FRAMES = 50;
 
+const MOVEMENT_KEYS = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 const exampleGraph = {
   A: {
     neighbors: ["B", "C", "D", "E"],
@@ -175,8 +176,10 @@ const world = {
 };
 
 let animationGenerator;
-document.addEventListener("keyup", () => {
-  animationGenerator = randomizeGraphAnimation(world.graph);
+document.addEventListener("keyup", (event) => {
+  if (!Object.values(MOVEMENT_KEYS).includes(event.keyCode)) {
+    animationGenerator = randomizeGraphAnimation(world.graph);
+  }
 });
 
 function init() {
