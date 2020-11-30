@@ -10,7 +10,8 @@
   "type": "module",
   "dependencies": {
     "express": "^4.17.1",
-    "three": "^0.122.0"
+    "three": "^0.122.0",
+    "three.interaction": "^0.2.3"
   },
   "devDependencies": {
     "eslint": "^7.10.0",
