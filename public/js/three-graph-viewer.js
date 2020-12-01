@@ -7,7 +7,7 @@ import sample from "../node_modules/underscore/modules/sample.js";
 import terrainData from "../terrain.js";
 import { STLLoader } from "./build/STLLoader.js";
 
-const NUM_NODES = 30;
+const NUM_NODES = 20;
 const GRAPH_BOUNDARIES = {
   x: 80,
   y: 40,
@@ -39,6 +39,7 @@ const NODE_TEXTURES = [
 const NUM_ANIMATION_FRAMES = 50;
 
 const MOVEMENT_KEYS = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
+const FORCE_LAYOUT_KEY = 16;
 const exampleGraph = {
   A: {
     neighbors: ["B", "C", "D", "E"],
@@ -132,7 +133,10 @@ function randomPosition() {
 }
 
 function randomNeighbors(nodeIDs) {
-  const numNeighbors = Math.floor(Math.random() * (nodeIDs.length / 4));
+  const numNeighbors = Math.max(
+    Math.floor(Math.random() * (nodeIDs.length / 4)),
+    1
+  );
   if (numNeighbors === 1) {
     return [sample(nodeIDs)];
   }
@@ -155,73 +159,69 @@ function randomNodePositions(graph) {
   return positions;
 }
 
+// Adapted from the first algorithm in Spring Systems and Electrical Forces
+// here: http://cs.brown.edu/people/rtamassi/gdhandbook/chapters/force-directed.pdf
+// To preserve the approximate size of the graph while "spreading out" the nodes
+// as much as possible, the distance of a node from the origin is fixed, but is
+// rotated based on the forces exerted by other nodes.
 function forceDirectedLayout(graph) {
-  // Initialize vertices at random points
-  const randomPosns = randomNodePositions(graph);
-  const nodeVectors = posnToVectors(randomPosns);
-  const maxIterations = 2;
-  const c1 = 2;
+  const nodeVectors = posnsToVectors(getNodePositions(graph));
+  const maxIterations = 2500;
+  const c1 = 200;
   const c2 = 1;
-  const c3 = 1;
-  const c4 = 0.1;
+  const c3 = 100;
+  const c4 = 1;
+  const epsilon = 0.001; // a little jitter to prevent divide by zero
 
-  let i = 0;
-  while (i < maxIterations) {
-    const forceOnNode = {};
-    Object.entries(graph).forEach(([nodeID, node]) => {
+  const nodeIDs = Object.keys(graph);
+  for (let i = 0; i < maxIterations; i += 1) {
+    const forceOnNode = nodeIDs.reduce((forceOn, nodeID) => {
+      forceOn[nodeID] = new THREE.Vector3();
+      return forceOn;
+    }, {});
+
+    // calculate forces between every pair of nodes
+    for (let j = 0; j < nodeIDs.length; j += 1) {
+      const nodeID = nodeIDs[j];
       const nodeVec = nodeVectors[nodeID];
+      for (let k = j + 1; k < nodeIDs.length; k += 1) {
+        const otherID = nodeIDs[k];
+        const otherVec = nodeVectors[otherID];
+        const force = new THREE.Vector3()
+          .subVectors(otherVec, nodeVec)
+          .normalize();
 
-      // Calculate attractive forces to the neighbors
-      const attractiveForce = node.neighbors.reduce((soFar, neighborName) => {
-        if (neighborName !== nodeID) {
-          const neighborVec = nodeVectors[neighborName];
-          const forceDirection = new THREE.Vector3().subVectors(
-            neighborVec,
-            nodeVec
-          );
-          const force = forceDirection.multiplyScalar(
-            c1 * Math.log(nodeVec.distanceTo(neighborVec) / c2)
-          );
-          soFar.add(force);
+        let scale;
+        if (
+          graph[nodeID].neighbors.includes(otherID) ||
+          graph[otherID].neighbors.includes(nodeID)
+        ) {
+          // if they're neighbors, there is an attractive spring force between them
+          scale = c1 * Math.log((nodeVec.distanceTo(otherVec) + epsilon) / c2);
+        } else {
+          // there is a repulsive force proportional to the inverse squared distance
+          scale = -(c3 / (nodeVec.distanceToSquared(otherVec) + epsilon));
         }
-        return soFar;
-      }, new THREE.Vector3());
+        force.multiplyScalar(scale * c4);
 
-      // Calculate repulsive forces from all other nodes
-      const repulsiveForce = Object.keys(graph).reduce((soFar, otherID) => {
-        if (otherID !== nodeID && !node.neighbors.includes(otherID)) {
-          const otherVec = nodeVectors[otherID];
-          const forceDirection = new THREE.Vector3().subVectors(
-            nodeVec,
-            otherVec
-          );
-          const force = forceDirection.multiplyScalar(
-            c3 / nodeVec.distanceToSquared(otherVec)
-          );
-          soFar.add(force);
-        }
-        return soFar;
-      }, new THREE.Vector3());
+        forceOnNode[nodeID].add(force);
+        forceOnNode[otherID].add(force.multiplyScalar(-1));
+      }
+    }
 
-      // move the position by a bit of the total force
-      const totalForce = new THREE.Vector3().addVectors(
-        attractiveForce,
-        repulsiveForce
-      );
-      forceOnNode[nodeID] = totalForce.multiplyScalar(c4);
-    });
-
+    // act on node positions by forces on them
     Object.entries(forceOnNode).forEach(([nodeID, force]) => {
-      nodeVectors[nodeID].add(force);
+      const v = nodeVectors[nodeID];
+      // preserve distance of node to origin so that the graph doesn't expand
+      const prevLength = v.length();
+      v.add(force).multiplyScalar(prevLength / v.length());
     });
-
-    i += 1;
   }
 
   return vectorsToPosns(nodeVectors);
 }
 
-function posnToVectors(posns) {
+function posnsToVectors(posns) {
   return Object.entries(posns).reduce((vecs, [nodeID, posn]) => {
     vecs[nodeID] = new THREE.Vector3(posn.x, posn.y, posn.z);
     return vecs;
@@ -235,9 +235,9 @@ function vectorsToPosns(vecs) {
   }, {});
 }
 
-function* randomizeGraphAnimation(graph) {
+function* randomizeGraphAnimation(graph, layoutAlgorithm) {
   const nodeStartingPositions = getNodePositions(graph);
-  const nodeDestinations = forceDirectedLayout(graph);
+  const nodeDestinations = layoutAlgorithm(graph);
 
   for (let i = 0; i < NUM_ANIMATION_FRAMES; i++) {
     Object.entries(graph).forEach(([nodeID, node]) => {
@@ -276,8 +276,11 @@ const world = {
 
 let animationGenerator;
 document.addEventListener("keyup", (event) => {
-  if (!Object.values(MOVEMENT_KEYS).includes(event.keyCode)) {
-    animationGenerator = randomizeGraphAnimation(world.graph);
+  const k = event.keyCode;
+  if (!Object.values(MOVEMENT_KEYS).includes(k)) {
+    const algorithm =
+      k === FORCE_LAYOUT_KEY ? forceDirectedLayout : randomNodePositions;
+    animationGenerator = randomizeGraphAnimation(world.graph, algorithm);
   }
 });
 
@@ -309,7 +312,10 @@ function init() {
 
   initGraphThreeObjects(world.graph);
   addGraphToScene(scene, world.graph);
-  animationGenerator = randomizeGraphAnimation(world.graph);
+  animationGenerator = randomizeGraphAnimation(
+    world.graph,
+    randomNodePositions
+  );
 
   const animate = () => {
     // Move the animation forward if there is one ongoing
