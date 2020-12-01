@@ -155,9 +155,89 @@ function randomNodePositions(graph) {
   return positions;
 }
 
+function forceDirectedLayout(graph) {
+  // Initialize vertices at random points
+  const randomPosns = randomNodePositions(graph);
+  const nodeVectors = posnToVectors(randomPosns);
+  const maxIterations = 2;
+  const c1 = 2;
+  const c2 = 1;
+  const c3 = 1;
+  const c4 = 0.1;
+
+  let i = 0;
+  while (i < maxIterations) {
+    const forceOnNode = {};
+    Object.entries(graph).forEach(([nodeID, node]) => {
+      const nodeVec = nodeVectors[nodeID];
+
+      // Calculate attractive forces to the neighbors
+      const attractiveForce = node.neighbors.reduce((soFar, neighborName) => {
+        if (neighborName !== nodeID) {
+          const neighborVec = nodeVectors[neighborName];
+          const forceDirection = new THREE.Vector3().subVectors(
+            neighborVec,
+            nodeVec
+          );
+          const force = forceDirection.multiplyScalar(
+            c1 * Math.log(nodeVec.distanceTo(neighborVec) / c2)
+          );
+          soFar.add(force);
+        }
+        return soFar;
+      }, new THREE.Vector3());
+
+      // Calculate repulsive forces from all other nodes
+      const repulsiveForce = Object.keys(graph).reduce((soFar, otherID) => {
+        if (otherID !== nodeID && !node.neighbors.includes(otherID)) {
+          const otherVec = nodeVectors[otherID];
+          const forceDirection = new THREE.Vector3().subVectors(
+            nodeVec,
+            otherVec
+          );
+          const force = forceDirection.multiplyScalar(
+            c3 / nodeVec.distanceToSquared(otherVec)
+          );
+          soFar.add(force);
+        }
+        return soFar;
+      }, new THREE.Vector3());
+
+      // move the position by a bit of the total force
+      const totalForce = new THREE.Vector3().addVectors(
+        attractiveForce,
+        repulsiveForce
+      );
+      forceOnNode[nodeID] = totalForce.multiplyScalar(c4);
+    });
+
+    Object.entries(forceOnNode).forEach(([nodeID, force]) => {
+      nodeVectors[nodeID].add(force);
+    });
+
+    i += 1;
+  }
+
+  return vectorsToPosns(nodeVectors);
+}
+
+function posnToVectors(posns) {
+  return Object.entries(posns).reduce((vecs, [nodeID, posn]) => {
+    vecs[nodeID] = new THREE.Vector3(posn.x, posn.y, posn.z);
+    return vecs;
+  }, {});
+}
+
+function vectorsToPosns(vecs) {
+  return Object.entries(vecs).reduce((posns, [nodeID, v]) => {
+    posns[nodeID] = { x: v.x, y: v.y, z: v.z };
+    return posns;
+  }, {});
+}
+
 function* randomizeGraphAnimation(graph) {
   const nodeStartingPositions = getNodePositions(graph);
-  const nodeDestinations = randomNodePositions(graph);
+  const nodeDestinations = forceDirectedLayout(graph);
 
   for (let i = 0; i < NUM_ANIMATION_FRAMES; i++) {
     Object.entries(graph).forEach(([nodeID, node]) => {
