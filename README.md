@@ -11,4 +11,6 @@
 - press the arrow keys to pan the camera left, right, up, and down
 - scroll up and down to zoom in and out
 - click and drag on the empty space in the world to rotate the camera
+- press shift to apply a force-directed algorithm to adjust the current graph
+  layout to be more uniform and nicely presented
 - press any other key to scramble the graph
