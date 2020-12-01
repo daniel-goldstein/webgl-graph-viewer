@@ -40,53 +40,6 @@ const NUM_ANIMATION_FRAMES = 50;
 
 const MOVEMENT_KEYS = { LEFT: 37, UP: 38, RIGHT: 39, BOTTOM: 40 };
 const FORCE_LAYOUT_KEY = 16;
-const exampleGraph = {
-  A: {
-    neighbors: ["B", "C", "D", "E"],
-    posn: {
-      x: 10,
-      y: 10,
-      z: 10,
-    },
-    texture: NODE_TEXTURES[0],
-  },
-  B: {
-    neighbors: ["C", "E"],
-    posn: {
-      x: -10,
-      y: 10,
-      z: 0,
-    },
-    texture: NODE_TEXTURES[0],
-  },
-  C: {
-    neighbors: [],
-    posn: {
-      x: -15,
-      y: 0,
-      z: -5,
-    },
-    texture: NODE_TEXTURES[0],
-  },
-  D: {
-    neighbors: [],
-    posn: {
-      x: 10,
-      y: 0,
-      z: -5,
-    },
-    texture: NODE_TEXTURES[0],
-  },
-  E: {
-    neighbors: [],
-    posn: {
-      x: -15,
-      y: 20,
-      z: -10,
-    },
-    texture: NODE_TEXTURES[0],
-  },
-};
 
 function generateOriginOverlappingGraph(numNodes) {
   const nodeIDs = new Array(numNodes);
