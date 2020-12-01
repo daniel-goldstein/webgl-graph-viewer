@@ -8,6 +8,9 @@
   "license": "MIT",
   "private": false,
   "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
   "dependencies": {
     "express": "^4.17.1",
     "lodash": "^4.17.20",
