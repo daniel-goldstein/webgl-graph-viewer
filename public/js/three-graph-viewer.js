@@ -5,12 +5,13 @@ import { Interaction } from "./build/three-interaction.module.js";
 import { OrbitControls } from "./examples/jsm/controls/OrbitControls.js";
 import sample from "../node_modules/underscore/modules/sample.js";
 import terrainData from "../terrain.js";
+import { STLLoader } from "./build/STLLoader.js";
 
-const NUM_NODES = 15;
+const NUM_NODES = 30;
 const GRAPH_BOUNDARIES = {
-  x: 50,
+  x: 80,
   y: 40,
-  z: 50,
+  z: 80,
 };
 
 const SPHERE_RADIUS = 1;
@@ -131,7 +132,7 @@ function randomPosition() {
 }
 
 function randomNeighbors(nodeIDs) {
-  const numNeighbors = Math.floor(Math.random() * (nodeIDs.length / 3));
+  const numNeighbors = Math.floor(Math.random() * (nodeIDs.length / 4));
   if (numNeighbors === 1) {
     return [sample(nodeIDs)];
   }
@@ -224,6 +225,8 @@ function init() {
   scene.add(spotlight);
   scene.add(ground);
 
+  initStarMesh(scene);
+
   initGraphThreeObjects(world.graph);
   addGraphToScene(scene, world.graph);
   animationGenerator = randomizeGraphAnimation(world.graph);
@@ -247,7 +250,7 @@ function initScene() {
 }
 
 function initSpotlight() {
-  const spotLight = new THREE.SpotLight(0xffffff, 1);
+  const spotLight = new THREE.SpotLight(0xffffff, 1, 0, Math.PI / 2);
   spotLight.position.set(0, 100, 0);
 
   spotLight.castShadow = true;
@@ -275,6 +278,25 @@ function initGroundMesh() {
   });
 
   return new THREE.Mesh(geometry, material);
+}
+
+function initStarMesh(scene) {
+  const loader = new STLLoader();
+  loader.load("You_Tried.stl", function (geometry) {
+    const material = new THREE.MeshPhongMaterial({
+      color: 0xff5533,
+      specular: 0x111111,
+      shininess: 200,
+    });
+    const starMesh = new THREE.Mesh(geometry, material);
+
+    starMesh.position.set(-80, 20, 0);
+    starMesh.rotation.set(0, Math.PI / 2, 0);
+
+    starMesh.castShadow = true;
+    starMesh.receiveShadow = true;
+    scene.add(starMesh);
+  });
 }
 
 function addGraphToScene(scene, graph) {
